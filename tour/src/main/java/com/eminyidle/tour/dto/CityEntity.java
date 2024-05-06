@@ -11,9 +11,9 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @ToString
-@Entity
+@Entity(name = "city")
 public class CityEntity {
-    @Id
+    @Id @Column(name = "city_id")
     private Integer id;
     @Column(name = "country_code")
     private String countryCode;
@@ -22,4 +22,10 @@ public class CityEntity {
     @Column(name = "city_name_eng")
     private String cityNameEng;
 
+    public City toCityNode(){
+        return City.builder()
+                .cityName(cityNameKor)
+                .countryCode(countryCode)
+                .build();
+    }
 }

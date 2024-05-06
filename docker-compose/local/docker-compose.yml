@@ -85,8 +85,10 @@ services:
     restart: unless-stopped
     volumes:
       - tour-neo4j-data:/data
+      - ../tour/initdb.d:/docker-entrypoint-initdb.d
     environment:
       NEO4J_AUTH: ${TOUR_NEO4J_USER_NAME}/${TOUR_NEO4J_USER_PASSWORD}
+      NEO4J_apoc_import_file_use__neo4j__config: true
       TZ: 'Asia/Seoul'
     ports:
       - "7475:7474"

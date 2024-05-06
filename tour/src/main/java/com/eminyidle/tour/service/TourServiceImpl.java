@@ -5,12 +5,11 @@ import com.eminyidle.tour.dto.req.CreateTourReq;
 import com.eminyidle.tour.dto.req.UpdateTourCityReq;
 import com.eminyidle.tour.dto.req.UpdateTourPeriodReq;
 import com.eminyidle.tour.dto.req.UpdateTourTitleReq;
-import com.eminyidle.tour.exception.AbnormalTourDateException;
-import com.eminyidle.tour.exception.NoHostPrivilegesException;
-import com.eminyidle.tour.exception.NoSuchTourException;
+import com.eminyidle.tour.exception.*;
 import com.eminyidle.tour.repository.CityRepository;
 import com.eminyidle.tour.repository.TourRepository;
 import com.eminyidle.tour.repository.UserRepository;
+import com.eminyidle.tour.repository.maria.CountryCityRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -30,6 +29,7 @@ public class TourServiceImpl implements TourService {
     private final TourRepository tourRepository;
     private final UserRepository userRepository;
     private final CityRepository cityRepository;
+    private final CountryCityRepository countryCityRepository;
 
     private final MemberService memberService;
 
@@ -49,9 +49,19 @@ public class TourServiceImpl implements TourService {
                 .tourTitle(createTourReq.getTourTitle())
                 .startDate(createTourReq.getStartDate())
                 .endDate(createTourReq.getEndDate())
-                .cityList(createTourReq.getCityList().stream().map(
-                        (city) ->
-                                cityRepository.findCity(city.getCityName(), city.getCountryCode()).orElse(city)
+                .cityList(createTourReq.getCityList().stream().map((city) -> {
+
+                            log.debug(city.toString());
+                            return cityRepository.findCity(city.getCityName(), city.getCountryCode()).orElseGet(
+                                    () -> {
+                                        City cityFromRdb=countryCityRepository.findByCountryCodeAndCityNameKor(city.getCountryCode(), city.getCityName()).orElseThrow(NoSuchCityException::new).toCityNode();
+                                        log.debug(">>>>>>"+cityFromRdb);
+                                        cityFromRdb.setCountry(cityRepository.findCountryNodeByCountryCode(cityFromRdb.getCountryCode()).orElseThrow(NoSuchCountryException::new));
+                                        return cityFromRdb;
+                                    }
+                            );
+                        }
+
                 ).toList())
                 .build();
         tourRepository.save(tour);

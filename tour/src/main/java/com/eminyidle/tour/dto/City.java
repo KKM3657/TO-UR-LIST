@@ -3,6 +3,7 @@ package com.eminyidle.tour.dto;
 import lombok.*;
 import org.springframework.data.neo4j.core.schema.*;
 
+import java.util.List;
 import java.util.Objects;
 
 @Getter
@@ -16,9 +17,13 @@ public class City {
     @Id @GeneratedValue
     private String id;
 //    @Relationship(type = "IN")
+//    @Property(readOnly = true)
     private String countryCode;
     @Property
     private String cityName;
+
+    @Relationship(type = "IN",direction = Relationship.Direction.OUTGOING)
+    private Country country;
 
     public City(String cityName, String countryCode){
         setCityName(cityName);

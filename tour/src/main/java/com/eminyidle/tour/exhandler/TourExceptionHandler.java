@@ -63,4 +63,10 @@ public class TourExceptionHandler {
         return ResponseEntity.badRequest()
                 .body(e.getMessage());
     }
+
+    @ExceptionHandler(NoSuchCityException.class)
+    public ResponseEntity<String> handleNoSuchCityException(Exception e){
+        return ResponseEntity.badRequest()
+                .body(e.getMessage());
+    }
 }
