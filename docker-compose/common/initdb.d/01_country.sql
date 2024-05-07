@@ -10,7 +10,7 @@ create table if not exists country
     plug_type varchar(50)
 );
 
-LOAD DATA INFILE '/docker-entrypoint-initdb.d/country_info_final_updated.csv'
+LOAD DATA INFILE '/docker-entrypoint-initdb.d/country.csv'
     INTO TABLE country
     FIELDS
     TERMINATED BY ','
