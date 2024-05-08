@@ -27,10 +27,10 @@ public class ActivityServiceImpl implements ActivityService {
     }
 
     @Override
-    public void searchTourActivityByPlaceId(String tourActivityId) {
+    public void searchTourPlaceByPlaceId(String tourActivityId) {
         log.info("서비스 실행");
 //        String ans = placeRepository.findByTourActivityId(tourActivityId).get().getActivity().getActivity().toString();
-        String ans = placeRepository.findByTourActivityId(tourActivityId).get().toString();
+        String ans = placeRepository.findByTourPlaceId(tourActivityId).get().toString();
         log.info(ans);
 
     }
@@ -56,7 +56,6 @@ public class ActivityServiceImpl implements ActivityService {
         return false;
     }
 
-
     // 중복된 활동 확인
     @Override
     public Boolean checkActivityDuplication(String tourId, String placeId, Integer tourDay, String activity) {
@@ -70,6 +69,26 @@ public class ActivityServiceImpl implements ActivityService {
             return true;
         } catch (Exception e) {
             log.info("활동 확인 과정에서 오류 발생");
+            return false;
+        }
+    }
+
+    // 활동 삭제
+    @Override
+    public boolean deleteActivity(LinkedHashMap<String, Object> body, String tourId, Map<String, Object> simpSessionAttributes) {
+        // 받아 온 body = requestbody
+        String tourPlaceId = (String) body.get("tourPlaceId");
+        String activity = (String) body.get("activity");
+        // 냅다 삭제를 갈기고 오류가 나면 잡아주기
+        try {
+            activityRepository.deleteByTourPlaceIdAndActivity(tourPlaceId, activity);
+            log.info("해당하는 활동 삭제");
+            return true;
+        } catch (NoSuchElementException e) {
+            log.info("해당하는 활동이 없음");
+            return false;
+        } catch (Exception e) {
+            log.info("활동 삭제 과정에서 오류 발생");
             return false;
         }
     }

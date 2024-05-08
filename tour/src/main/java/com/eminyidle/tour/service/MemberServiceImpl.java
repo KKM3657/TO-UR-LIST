@@ -14,7 +14,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,6 +25,7 @@ public class MemberServiceImpl implements MemberService {
     private final UserRepository userRepository;
     private final TourRepository tourRepository;
     private final GhostRepository ghostRepository;
+    private final RequestService requestService;
 
     private void assertHost(String userId, String tourId) {
         String memberType = userRepository.findMemberTypeByUserIdAndTourId(userId, tourId);
@@ -38,38 +38,37 @@ public class MemberServiceImpl implements MemberService {
         userRepository.findUserByAttendRelationship(userId, tourId).orElseThrow(UserNotAttendSuchTourException::new);
     }
 
-    //TODO - 바꿀 수 있으면.. 에러 없이 하는 방법...으로,....
-    private boolean isAttend(String userId, String tourId){
-        return userRepository.existsAttendRelationshipByUserIdAndTourId(userId,tourId);
+    private boolean isAttend(String userId, String tourId) {
+        return userRepository.existsAttendRelationshipByUserIdAndTourId(userId, tourId);
     }
 
+    private boolean isExistUser(String userId) {
+        return userRepository.existsById(userId);
+    }
+
+    //Refactor하면 좋을듯..
     @Override
     public void createMember(String hostId, TourMember tourMember) {
-        assertHost(hostId,tourMember.getTourId());
-        if(isAttend(tourMember.getUserId(),tourMember.getTourId())){
+        assertHost(hostId, tourMember.getTourId());
+        if (isExistUser(tourMember.getUserId()) && isAttend(tourMember.getUserId(), tourMember.getTourId())) {
             throw new AlreadyUserAttendTourException();
         }
         Tour tour = tourRepository.findById(tourMember.getTourId()).orElseThrow(NoSuchTourException::new);
         User user = userRepository.findById(tourMember.getUserId())
-                .orElse(userRepository.save(
-                        //TODO - 나의 노드에 없을 때, user서비스에 요청보내기
-                        //  없는 유저라면 exception
-                        User.builder()
-                                .userId(tourMember.getUserId())
-                                .tourList(new ArrayList<>())
-                                .userName("서버잉")
-                                .userNickname("servering")
-                                .build()
-                ));
+                .orElseGet(() ->
+                        userRepository.save(
+                                requestService.getUser(tourMember.getUserId())
+                        )
+                );
         userRepository.createGuestRelationship(hostId, tour.getTourId(), user.getUserId());
+        // TODO - 연결된 모든 체크리스트 생성 (Kafka)
     }
 
     @Override
     public Ghost createGhostMember(String hostId, CreateGhostMemberReq createGhostMemberReq) {
         assertHost(hostId, createGhostMemberReq.getTourId());
 
-        Ghost existingGhost=ghostRepository.findByGhostNicknameAndTourId(createGhostMemberReq.getGhostNickname(), createGhostMemberReq.getTourId());
-        if(existingGhost!=null){
+        if (ghostRepository.existsGhostByGhostNicknameAndTourId(createGhostMemberReq.getGhostNickname(), createGhostMemberReq.getTourId())) {
             throw new DuplicatedGhostNicknameException();
         }
 
@@ -85,7 +84,7 @@ public class MemberServiceImpl implements MemberService {
     public void updateGhostMemberNickname(String hostId, UpdateGhostMemberReq updateGhostMemberReq) {
         assertHost(hostId, updateGhostMemberReq.getTourId());
 
-        Ghost ghost=ghostRepository.findById(updateGhostMemberReq.getGhostId()).orElseThrow(NoSuchGhostException::new);
+        Ghost ghost = ghostRepository.findById(updateGhostMemberReq.getGhostId()).orElseThrow(NoSuchGhostException::new);
         ghost.setGhostNickname(updateGhostMemberReq.getGhostNickname());
         ghostRepository.save(ghost);
     }
@@ -101,51 +100,48 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public void updateGhostToGuest(String hostId, UpdateGhostToGuestReq updateGhostToGuestReq) {
-        Ghost ghost=ghostRepository.findById(updateGhostToGuestReq.getGhostId()).orElseThrow(NoSuchGhostException::new);
-        User user=userRepository.findById(updateGhostToGuestReq.getUserId()).orElseThrow(NoSuchUserException::new);
+        Ghost ghost = ghostRepository.findById(updateGhostToGuestReq.getGhostId()).orElseThrow(NoSuchGhostException::new);
 
         //여기에서 host임이 보장된다
-        createMember(hostId,TourMember.builder()
-                .userId(user.getUserId())
+        createMember(hostId, TourMember.builder()
+                .userId(updateGhostToGuestReq.getUserId())
                 .tourId(updateGhostToGuestReq.getTourId())
-                .userNickname(user.getUserNickname())
+                .userNickname(updateGhostToGuestReq.getUserNickname())
                 .build()
         );
-        //TODO- ghost에 있던 연결 guest에 잇기
+        //TODO- ghost에 있던 연결(가계부) guest에 잇기 : Kafka or RestTemplate
         ghostRepository.delete(ghost);
     }
 
     @Override
     public void updateHost(String hostId, TourMember tourMember) {
-        assertHost(hostId,tourMember.getTourId());
+        assertHost(hostId, tourMember.getTourId());
 
-        User user = userRepository.findById(tourMember.getUserId())
-                .orElse(userRepository.save(
-                        //TODO - 나의 노드에 없을 때, 올바른 유저인지 확인 필요
-                        User.builder().userId(tourMember.getUserId()).userNickname(tourMember.getUserNickname()).build()
-                ));
+        //참여중인 유저가 아니라면, 권한을 넘겨줄 수 없다.
+        User user = userRepository.findUserByAttendRelationship(tourMember.getUserId(), tourMember.getTourId()).orElseThrow(NoSuchMemberException::new);
 
         userRepository.updateMemberRelationshipExceptGhost(hostId, tourMember.getTourId(), "guest");
         userRepository.updateMemberRelationshipExceptGhost(user.getUserId(), tourMember.getTourId(), "host");
+
     }
 
     @Override
     public void deleteMember(String hostId, DeleteMemberReq deleteMemberReq) {
         assertHost(hostId, deleteMemberReq.getTourId());
 
-        switch (deleteMemberReq.getMemberType()){
+        switch (deleteMemberReq.getMemberType()) {
             case "host":
                 throw new HostCanNotBeDeletedException();
             case "guest":
-                userRepository.deleteMemberRelationship(deleteMemberReq.getUserId(), deleteMemberReq.getTourId(), deleteMemberReq.getMemberType());
-                //TODO- 모든 아이템 삭제 요청
+                userRepository.deleteGuestRelationship(deleteMemberReq.getUserId(), deleteMemberReq.getTourId());
+                //TODO- 모든 아이템 삭제 요청(KAFKA)
                 // 이용 ->deleteMemberReq.getUserId(), deleteMemberReq.getTourId()
                 break;
             case "ghost":
                 ghostRepository.deleteById(deleteMemberReq.getUserId());
                 break;
             default:
-                throw new InvalidMemberTypeException();
+                throw new UndefinedMemberTypeException();
         }
     }
 }

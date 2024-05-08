@@ -11,14 +11,16 @@ import java.util.Objects;
 @AllArgsConstructor
 @Builder
 @ToString
-@Node
+@Node(primaryLabel = "CITY")
 public class City {
     @Id @GeneratedValue
     private String id;
-//    @Relationship(type = "IN")
     private String countryCode;
     @Property
     private String cityName;
+
+    @Relationship(type = "IN")
+    private Country country;
 
     public City(String cityName, String countryCode){
         setCityName(cityName);

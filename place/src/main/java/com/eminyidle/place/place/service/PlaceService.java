@@ -1,7 +1,8 @@
 package com.eminyidle.place.place.service;
 
-import com.eminyidle.place.place.dto.TourPlace;
+import com.eminyidle.place.place.dto.TourPlaceInfo;
 import com.eminyidle.place.place.dto.TourPlaceMessageInfo;
+import com.eminyidle.place.place.dto.res.SearchPlaceDetailRes;
 import com.eminyidle.place.place.dto.res.SearchPlaceListRes;
 
 import java.util.LinkedHashMap;
@@ -11,6 +12,9 @@ import java.util.Map;
 public interface PlaceService {
     List<SearchPlaceListRes> searchPlaceList(String keyword);
 
+
+    // 장소 세부 검색
+    SearchPlaceDetailRes searchPlaceDetail(String tourId, Integer tourDay, String placeId);
 
     // 장소 추가
     TourPlaceMessageInfo addPlace(LinkedHashMap<String, Object> body, String tourId, Map<String, Object> headers);
@@ -24,6 +28,6 @@ public interface PlaceService {
     // 장소 존재 여부 조회
     Boolean checkPlaceDuplication(String tourId, Integer tourDay, String placeId);
 
-    List<TourPlace> searchTourPlace(String tourId);
+    List<TourPlaceInfo> searchTourPlace(String tourId);
 
 }

@@ -12,10 +12,16 @@ import { City, TourCardInfo } from '../types/types';
 export default function TourCreatePage() {
     const [step, setStep] = useState<number>(1);
     const [selectedCity, setSelectedCity] = useState<string[]>([]);
-    const [startDate, setStartDate] = useState<Date>();
-    const [endDate, setEndDate] = useState<Date>();
+    const [startDate, setStartDate] = useState<Date>(new Date());
+    const [endDate, setEndDate] = useState<Date>(new Date());
     const [title, setTitle] = useState<string>('');
-    const [newTour, setNewTour] = useState<TourCardInfo>(); // 정보들로 만들 객체
+    const [newTour, setNewTour] = useState<TourCardInfo>({
+        tourId: '0',
+        tourTitle: '',
+        cityList: [],
+        startDate: '',
+        endDate: '',
+    }); // 정보들로 만들 객체
 
     // setPlace 로부터 데이터 받기
     const handleCityData = (data: string[]) => {
@@ -51,8 +57,8 @@ export default function TourCreatePage() {
             tourId: '0', // 임시
             tourTitle: title,
             cityList: cities,
-            startDate: startDate?.toISOString(),
-            endDate: endDate?.toISOString(),
+            startDate: startDate.toISOString(),
+            endDate: endDate.toISOString(),
         });
     }, [step, title]);
 
@@ -80,12 +86,7 @@ export default function TourCreatePage() {
     let currentComponent;
     switch (step) {
         case 1:
-            currentComponent = (
-                <SetPlace
-                    onChangeQuery={''}
-                    onChangeSelected={handleCityData}
-                />
-            );
+            currentComponent = <SetPlace onChangeSelected={handleCityData} />;
             break;
         case 2:
             currentComponent = <SetDate onChangeDate={handleDateData} />;

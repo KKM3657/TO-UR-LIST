@@ -15,6 +15,7 @@ import TourScheduleEditPage from './pages/Schedule/TourScheduleEditPage';
 import ChecklistPage from './pages/Checklist/ChecklistPage';
 import ChecklistEditAllPage from './pages/Checklist/ChecklistEditAllPage';
 import ChecklistEditDayPage from './pages/Checklist/ChecklistEditDayPage';
+import ChecklistEditItemPage from './pages/Checklist/ChecklistEditItemPage';
 import AccountPage from './pages/Account/AccountPage';
 import AccountTotalPage from './pages/Account/AccountTotalPage';
 import AccountAddPage from './pages/Account/AccountAddPage';
@@ -28,6 +29,7 @@ import FeedEditPage from './pages/Feed/FeedEditPage';
 import './App.css';
 import LoginCheck from './pages/AuthCheck/LoginCheck';
 import TourScheduleEditDetailPage from './pages/Schedule/TourScheduleEditDetailPage';
+import PlaceAddDetailPage from './pages/Schedule/PlaceAddDetailPage';
 
 export default function App() {
     return (
@@ -66,6 +68,11 @@ export default function App() {
                     path="/tour/:tourid/schedule/add"
                     element={<PlaceAddPage />}
                 />
+                {/* 장소 추가 상세보기 페이지 */}
+                <Route
+                    path="/tour/:tourid/schedule/add/detail"
+                    element={<PlaceAddDetailPage />}
+                />
                 {/* 일정 변경 페이지 */}
                 <Route
                     path="/tour/:tourid/schedule/edit"
@@ -92,6 +99,11 @@ export default function App() {
                 <Route
                     path="/tour/:tourid/checklist/day"
                     element={<ChecklistEditDayPage />}
+                />
+                {/* 체크리스트 항목 수정 */}
+                <Route
+                    path="/tour/:tourid/checklist/edit"
+                    element={<ChecklistEditItemPage />}
                 />
 
                 {/* 가계부 관련 */}

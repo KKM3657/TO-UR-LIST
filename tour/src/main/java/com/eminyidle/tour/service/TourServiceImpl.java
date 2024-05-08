@@ -7,13 +7,16 @@ import com.eminyidle.tour.dto.req.UpdateTourPeriodReq;
 import com.eminyidle.tour.dto.req.UpdateTourTitleReq;
 import com.eminyidle.tour.exception.AbnormalTourDateException;
 import com.eminyidle.tour.exception.NoHostPrivilegesException;
+import com.eminyidle.tour.exception.NoSuchCityException;
 import com.eminyidle.tour.exception.NoSuchTourException;
 import com.eminyidle.tour.repository.CityRepository;
 import com.eminyidle.tour.repository.TourRepository;
 import com.eminyidle.tour.repository.UserRepository;
+import com.eminyidle.tour.repository.maria.CountryCityRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -25,25 +28,20 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional("neo4jTransactionManager")
 public class TourServiceImpl implements TourService {
 
     private final TourRepository tourRepository;
     private final UserRepository userRepository;
     private final CityRepository cityRepository;
+    private final CountryCityRepository countryCityRepository;
 
     private final MemberService memberService;
-
-    public void createUser(User user) {
-        userRepository.save(user);
-    }
-
+    private final RequestService requestService;
 
     @Override
     public Tour createTour(String userId, CreateTourReq createTourReq) {
-        //만약 내 DB에 user있는지 확인
-        //있다면 그거 챙겨온다
-        //없다면 유저주라! 한 뒤 유저노드 만들기
-        log.debug(createTourReq.toString());
+//        log.debug(createTourReq.toString());
         Tour tour = Tour.builder()
                 .tourId(UUID.randomUUID().toString())
                 .tourTitle(createTourReq.getTourTitle())
@@ -51,28 +49,30 @@ public class TourServiceImpl implements TourService {
                 .endDate(createTourReq.getEndDate())
                 .cityList(createTourReq.getCityList().stream().map(
                         (city) ->
-                                cityRepository.findCity(city.getCityName(), city.getCountryCode()).orElse(city)
+                                cityRepository.findCity(city.getCityName(), city.getCountryCode()).orElseGet(() -> {
+                                    countryCityRepository.findCityEntityByCountryCodeAndCityNameKor(city.getCountryCode(),city.getCityName()).orElseThrow(NoSuchCityException::new);
+                                    return cityRepository.save(City.builder()
+                                            .countryCode(city.getCountryCode())
+                                            .cityName(city.getCityName())
+                                            .build());
+                                })
                 ).toList())
                 .build();
         tourRepository.save(tour);
 
-        User user = userRepository.findById(userId).orElse( //TODO - user서비스에서 정보 불러오기
-                User.builder()
-                        .userId(userId)
-                        .userNickname("ct")
-                        .userName("ct")
-                        .tourList(new ArrayList<>())
-                        .build()
+        User user = userRepository.findById(userId).orElseGet(() ->
+                requestService.getUser(userId)
         );
 
         user.getTourList().add(Attend.builder()
                 .tourTitle(createTourReq.getTourTitle())
                 .tour(tour)
                 .build());
-        log.debug(user.toString());
+//        log.debug(user.toString());
         userRepository.save(user);
         userRepository.createMemberRelationship(user.getUserId(), tour.getTourId(), "host");
 
+        // TODO - 나라와 연계된 체크리스트 생성(Kafka)
         return tour;
     }
 
@@ -93,7 +93,7 @@ public class TourServiceImpl implements TourService {
         if (!isHost(userId, tourId)) throw new NoHostPrivilegesException();
 
         tourRepository.deleteById(tourId);
-        //TODO - 연결된 모든 tourActivity도 지워져야 한다
+        //TODO - 연결된 모든 tourActivity도 지워져야 한다 (KAFKA)
     }
 
     @Override
@@ -113,17 +113,25 @@ public class TourServiceImpl implements TourService {
         tourRepository.save(tour);
     }
 
-    @Override
+    @Override //FIXME - 로직 변경
     public void updateTourCity(String userId, UpdateTourCityReq updateTourCityReq) {
         //DB에 도시 있으면 그 도시와 연결하고.. 없으면 새로운 도시 노드 만들어서 맞는 국가랑 연결..
         Tour tour = tourRepository.findByUserIdAndTourId(userId, updateTourCityReq.getTourId()).orElseThrow(NoSuchTourException::new);
         log.debug(tour.toString());
         Set<City> citySet = updateTourCityReq.getCityList().stream().map(
                 (city) ->
-                        cityRepository.findCity(city.getCityName(), city.getCountryCode()).orElse(city)
+                        cityRepository.findCity(city.getCityName(), city.getCountryCode()).orElseGet(() -> {
+                            countryCityRepository.findCityEntityByCountryCodeAndCityNameKor(city.getCountryCode(),city.getCityName()).orElseThrow(NoSuchCityException::new);
+                            log.debug(city.toString());
+                            return cityRepository.save(City.builder()
+                                    .countryCode(city.getCountryCode())
+                                    .cityName(city.getCityName())
+                                    .build());
+                        })
         ).collect(Collectors.toSet());
         cityRepository.findCitiesByTourId(updateTourCityReq.getTourId()).stream().forEach(
                 (city) -> {
+//                    log.debug("chceking..." + city);
                     if (!citySet.contains(city)) {
                         tourRepository.deleteTourCityRelationshipByTourIdAndCityName(updateTourCityReq.getTourId(), city.getCityName());
                         log.debug("deleted " + city.getCityName());
@@ -133,6 +141,8 @@ public class TourServiceImpl implements TourService {
         tour.setCityList(citySet.stream().toList());
 
         tourRepository.save(tour);
+
+        // TODO - 나라와 연계된 체크리스트 업데이트(Kafka)
     }
 
     @Override
@@ -143,8 +153,8 @@ public class TourServiceImpl implements TourService {
 
     @Override
 
-    public TourDetail searchTourDetail(String userId, String tourId) { //TODO- optional
-        TourDetail tourDetail = tourRepository.findTourDetailByUserIdAndTourId(userId, tourId);
+    public TourDetail searchTourDetail(String userId, String tourId) {
+        TourDetail tourDetail = tourRepository.findTourDetailByUserIdAndTourId(userId, tourId).orElseThrow(NoSuchTourException::new);
         tourDetail.setMemberList(userRepository.findMembersByTourId(tourId));
         tourDetail.setCityList(cityRepository.findCitiesByTourId(tourId));
         System.out.println(tourDetail);
@@ -162,10 +172,11 @@ public class TourServiceImpl implements TourService {
         if (isHost(userId, tourId)) {
             List<Member> memberList = userRepository.findMembersByTourId(tourId).stream()
                     .filter(member -> "guest".equals(member.getMemberType())).toList();
-            if (memberList.isEmpty()) { //guest 아무도 없음
+            if (memberList.isEmpty()) { //guest 아무도 없음 -> 삭제 처리
                 deleteTour(userId, tourId);
                 return;
             }
+            //게스트가 있다면 랜덤하게 다음 게스트에게 호스트 권한 위임
             memberService.updateHost(userId, TourMember.builder()
                     .tourId(tourId)
                     .userId(memberList.get(0).getUserId())
@@ -173,11 +184,10 @@ public class TourServiceImpl implements TourService {
                     .build());
         }
         Tour tour = tourRepository.findByUserIdAndTourId(userId, tourId).orElseThrow(NoSuchTourException::new);
-        userRepository.deleteMemberRelationship(userId, tourId, "guest");
-        if (tour.getEndDate().isBefore(LocalDateTime.now())) { //여행 후인 경우
+        userRepository.deleteGuestRelationship(userId, tourId);
+        //TODO- 관련 모든 아이템 삭제(KAFKA)
+        if (tour.getEndDate().isBefore(LocalDateTime.now())) { //여행 후인 경우 - 다른 멤버들에게는 연결 정보 유지: 유저이지만, 타입을 고스트로 변경
             userRepository.createMemberRelationship(userId, tourId, "ghost");
-        } else { //여행 전, 중 ...
-            //TODO- 관련 모든 아이템 삭제
         }
     }
 }
