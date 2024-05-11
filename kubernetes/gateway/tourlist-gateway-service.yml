@@ -33,10 +33,12 @@ spec:
     spec:
       containers:
         - name: tourlist-gateway
-          image: ssuyas/tourlist_gateway
+          image: ssuyas/tourlist_gateway:latest
           ports:
             - containerPort: 8080
           envFrom:
             - configMapRef:
                 name: tourlist-gateway-config
+            - secretRef:
+                name: tourlist-gateway-secrets
 
