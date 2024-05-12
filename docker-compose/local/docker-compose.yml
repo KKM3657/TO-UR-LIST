@@ -73,6 +73,7 @@ services:
     restart: unless-stopped
     volumes:
       - place-neo4j-data:/data
+      - place-neo4j-conf:/conf
     environment:
       TZ: 'Asia/Seoul'
     ports:
@@ -85,24 +86,23 @@ services:
     restart: unless-stopped
     volumes:
       - tour-neo4j-data:/data
-      - ../tour/import:/var/lib/neo4j/import
-      - $HOME/neo4j/plugins:/plugins
+      - tour-neo4j-conf:/conf
+      - ../tour/import:/import
     environment:
       - NEO4J_AUTH=${TOUR_NEO4J_USER_NAME}/${TOUR_NEO4J_USER_PASSWORD}
+      - NEO4J_PLUGINS=["apoc"]
       - NEO4J_apoc_import_file_enabled=true
       - NEO4J_apoc_export_file_enabled=true
       - NEO4J_apoc_import_file_use__neo4j__config=true
-      - NEO4J_PLUGINS=["apoc"]
-      - NEO4J_server_memory_heap_initial__size=512m
-      - NEO4J_server_memory_heap_max__size=512m
-      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
-      - NEO4J_apoc_initialization__cypher__01=file:///init.cypher
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.cypher.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.coll.*,apoc.load.*,gds.*
+      - NEO4J_dbms_security_allow__csv__import__from__file__urls=true
       - TZ='Asia/Seoul'
     ports:
       - "7475:7474"
       - "7688:7687"
-    command:
-      - bin/neo4j-admin import --nodes=import/country.csv
+
+
 
   checklist-neo4j:
     image: neo4j:5.19.0-community
@@ -110,8 +110,11 @@ services:
     restart: unless-stopped
     volumes:
       - checklist-neo4j-data:/data
+      - checklist-neo4j-conf:/conf
+      - ../checklist/import:/import
     environment:
       NEO4J_AUTH: ${TOUR_NEO4J_USER_NAME}/${TOUR_NEO4J_USER_PASSWORD}
+      NEO4J_dbms_security_allow__csv__import__from__file__urls: true
       TZ: 'Asia/Seoul'
     ports:
       - "7476:7474"
@@ -187,7 +190,9 @@ volumes:
   payment-mongodb-data:
   zookeeper-data:
   kafka-data:
-  tour-neo4j-plugin:
+  place-neo4j-conf:
+  tour-neo4j-conf:
+  checklist-neo4j-conf:
 
 networks:
   default:
