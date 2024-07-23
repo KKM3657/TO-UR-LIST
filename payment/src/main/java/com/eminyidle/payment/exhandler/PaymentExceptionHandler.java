@@ -85,6 +85,28 @@ public class PaymentExceptionHandler {
         return ResponseEntity.badRequest().body(e.getMessage());
     }
 
+    @ExceptionHandler(DuplicateExchangeRateDataException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    protected ResponseEntity<String> duplicateExchangeRateDataExceptionHandler(
+            DuplicateExchangeRateDataException e) {
+        StringBuilder errorMessage = new StringBuilder();
+
+        makeErrorMessage(errorMessage, e);
+        errorMessage.append("이미 환율 데이터가 반영되어 있습니다.");
+        return ResponseEntity.badRequest().body(e.getMessage());
+    }
+
+    @ExceptionHandler(FailSaveExchangeRateDataException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    protected ResponseEntity<String> failExchangeRateDataExceptionHandler(
+            FailSaveExchangeRateDataException e) {
+        StringBuilder errorMessage = new StringBuilder();
+
+        makeErrorMessage(errorMessage, e);
+        errorMessage.append("이미 환율 데이터가 반영되어 있습니다.");
+        return ResponseEntity.badRequest().body(e.getMessage());
+    }
+
 //    @ExceptionHandler(MissingRequestHeaderException.class)
 //    @ResponseStatus(HttpStatus.BAD_REQUEST)
 //    protected ResponseEntity<String> userIdNotExistsExceptionHandler(
