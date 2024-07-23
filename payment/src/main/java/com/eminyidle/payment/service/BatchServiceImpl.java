@@ -10,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -22,7 +23,7 @@ public class BatchServiceImpl implements BatchService {
     private final ExchangeRateRepository exchangeRateRepository;
 
     @Override
-    public void saveExchangeRates(String responseBody) {
+    public void saveExchangeRates(String responseBody) throws SQLException {
 
         // JSON 파싱
         JSONObject jsonObject = new JSONObject(responseBody);
