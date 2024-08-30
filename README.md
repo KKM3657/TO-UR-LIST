@@ -333,53 +333,53 @@ TOURLIST는 여행에 필요한 체크 리스트, 일정, 가계부를 쉽게 �
         _id: String(tourId)
         ~~PublicPayment: List[publicPaymentId, ...]~~
         publicPayment(Map): {
-        												publicPaymentId(UUID):
-        												{
-        												    payAmount: Number,
-        												    exchangeRate: Number,
-        											      unit: String,
-        											      payMethod: String,
-        											      payDatetime: Date,
-        											      payContent: String,
-        											      payCategory: String,
-        											      payerId : String(UUID),
-        											      payMemberList : [
-        												        {
-        												            userId: String,
-        												            payAmount: Number
-        												        }, ...
-        												    ]
-        												},
-        												...
-        										}
+                                    publicPaymentId(UUID):
+                                    {
+                                        payAmount: Number,
+                                        exchangeRate: Number,
+                                      unit: String,
+                                      payMethod: String,
+                                      payDatetime: Date,
+                                      payContent: String,
+                                      payCategory: String,
+                                      payerId : String(UUID),
+                                      payMemberList : [
+                                            {
+                                                userId: String,
+                                                payAmount: Number
+                                            }, ...
+                                        ]
+                                    },
+                                    ...
+                             }
         privatePayment(Map): {
-        												 userId(UUID): {
-        												      privatePaymentList: List[
-        																			      {
-        																						    privatePaymentId: UUID,
-        																						    exchangeRate: Number,
-        																						    payAmount: Number,
-        																					      unit: String,
-        																					      payMethod: String,
-        																					      payDatetime: Date,
-        																					      payContent: String,
-        																					      payCategory: String,
-        																						},...
-        																			],
-        															publicPaymentList: [String, ...]
-        													}
+                                 userId(UUID): {
+                                      privatePaymentList: List[
+                                                                  {
+                                                                    privatePaymentId: UUID,
+                                                                    exchangeRate: Number,
+                                                                    payAmount: Number,
+                                                                    unit: String,
+                                                                    payMethod: String,
+                                                                    payDatetime: Date,
+                                                                    payContent: String,
+                                                                    payCategory: String,
+                                                                  },...
+                                                            ],
+                                      publicPaymentList: [String, ...]
+                                } 
         ```
 
 ## 👨‍👩‍👧‍👧 팀원 소개
 
 ### Frontend
 
--   김태운: 프론트엔드 개발
--   유혜승: UI디자인, 프론트엔드 개발
+-   ***: 프론트엔드 개발
+-   ***: UI디자인, 프론트엔드 개발
 
 ### Backend
 
--   김연수: 팀장🤴, 유저, 인증 서버 개발, 인프라 구축
--   김강민: 가계부 서버 개발, 국가 정보 및 활동 데이터 생성
--   이민영: 일정 서버 개발
--   이선재: 여행 관리, 체크리스트 서버 개발
+-   ***: 팀장🤴, 유저, 인증 서버 개발, 인프라 구축
+-   ***: 가계부 서버 개발, 국가 정보 및 활동 데이터 생성
+-   ***: 일정 서버 개발
+-   ***: 여행 관리, 체크리스트 서버 개발
